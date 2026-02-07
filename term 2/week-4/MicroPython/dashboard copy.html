@@ -147,9 +147,9 @@
         const host = "broker.benax.rw";
         const wsPort = 9002;
         const wsPath = "/mqtt";
-        const TOPIC_DATA = "sensors/dht";
-        const TOPIC_LED_CMD = "control/led";
-        const TOPIC_LED_STATE = "control/led/status";
+        const TOPIC_DATA = "sensors_derick/dht";
+        const TOPIC_LED_CMD = "control_derick/led";
+        const TOPIC_LED_STATE = "control_derick/led/status";
 
         // MQTT client
         const client = new Paho.MQTT.Client(host, wsPort, clientID);

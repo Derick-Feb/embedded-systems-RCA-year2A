@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@2.3.0/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.1.0/dist/chartjs-adapter-luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --bg: #050505; --surf: #0d0d0d; --brd: #1a1a1a; --txt: #d1d1d1; --sec: #555; --blue: #0088ff; --green: #00ff66; --amber: #ffaa00; --red: #ff3333; }
+        body { background: var(--bg); color: var(--txt); font-family: 'Consolas', monospace; font-size: 11px; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 800px; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--brd); padding-bottom: 8px; margin-bottom: 15px; }
+        h1 { font-size: 11px; margin: 0; color: var(--sec); letter-spacing: 1px; }
+        #mqtt-status { font-size: 9px; padding: 2px 8px; border: 1px solid var(--brd); text-transform: uppercase; font-weight: bold; transition: none; }
+        .st-conn { color: var(--amber); border-color: var(--amber) !important; }
+        .st-ok { color: var(--green); border-color: var(--green) !important; }
+        .st-err { color: var(--red); border-color: var(--red) !important; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .card { background: var(--surf); border: 1px solid var(--brd); padding: 12px; border-radius: 2px; }
+        .label { font-size: 9px; color: var(--sec); margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .val { font-size: 2rem; font-weight: 300; color: #fff; }
+        .unit { font-size: 10px; color: var(--sec); margin-left: 3px; }
+        .btns { display: flex; gap: 8px; margin-top: 12px; }
+        .btn { background: #151515; border: 1px solid var(--brd); color: var(--sec); font: inherit; font-size: 10px; padding: 6px; cursor: pointer; flex: 1; text-transform: uppercase; }
+        .btn:hover { border-color: #444; color: #fff; }
+        .active { border-color: var(--blue) !important; color: var(--blue) !important; background: #1a1a1a; }
+        .chart-card { grid-column: 1 / -1; height: 220px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>DEVICE: ESP8266_DERICK</h1>
+        <div id="mqtt-status" class="st-conn">CONNECTING...</div>
+    </header>
+    <div class="grid">
+        <div class="card"><div class="label">TEMP <i class="bi bi-thermometer"></i></div><span class="val" id="t-val">--</span><span class="unit">°C</span></div>
+        <div class="card"><div class="label">HUMIDITY <i class="bi bi-droplet"></i></div><span class="val" id="h-val">--</span><span class="unit">%</span></div>
+        <div class="card">
+            <div class="label">ACTUATOR <i class="bi bi-power"></i></div>
+            <div class="btns"><button class="btn" id="b-on" onclick="cmd('ON')">ON</button><button class="btn" id="b-off" onclick="cmd('OFF')">OFF</button></div>
+            <div style="font-size: 9px; margin-top: 10px; color: var(--sec);">STATE: <span id="s-txt" style="color:#fff">--</span></div>
+        </div>
+        <div class="card chart-card"><canvas id="c"></canvas></div>
+    </div>
+</div>
+<script>
+    const T_DATA = "sensors_derick/dht", T_CMD = "control_derick/led", T_STATE = "control_derick/led/status";
+    const status = document.getElementById('mqtt-status');
+    const client = new Paho.MQTT.Client("wss://broker.benax.rw:9002/mqtt", "u" + Math.random().toString(16).slice(2, 6));
+
+    const chart = new Chart(document.getElementById('c'), {
+        type: 'line',
+        data: { datasets: [{borderColor:'#f33',borderWidth:1,pointRadius:0,data:[]},{borderColor:'#08f',borderWidth:1,pointRadius:0,data:[]}] },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ x:{type:'realtime',realtime:{duration:60000},grid:{color:'#111'},ticks:{font:{size:8},color:'#444'}}, y:{grid:{color:'#111'},ticks:{font:{size:8},color:'#444'}} }, plugins:{legend:{display:false}} }
+    });
+
+    client.onConnectionLost = (e) => { status.innerText="DISCONNECTED"; status.className="st-err"; };
+    client.onMessageArrived = (m) => {
+        if(m.destinationName === T_DATA) {
+            try {
+                const d = JSON.parse(m.payloadString);
+                document.getElementById('t-val').innerText = d.temperature;
+                document.getElementById('h-val').innerText = d.humidity;
+                chart.data.datasets[0].data.push({x:Date.now(), y:d.temperature});
+                chart.data.datasets[1].data.push({x:Date.now(), y:d.humidity});
+            } catch(e) {}
+        }
+        if(m.destinationName === T_STATE) {
+            const s = m.payloadString.toUpperCase();
+            document.getElementById('s-txt').innerText = s;
+            document.getElementById('b-on').className = s==='ON' ? 'btn active' : 'btn';
+            document.getElementById('b-off').className = s==='OFF' ? 'btn active' : 'btn';
+        }
+    };
+
+    client.connect({ useSSL:true, timeout:5, 
+        onSuccess: () => { status.innerText="CONNECTED"; status.className="st-ok"; client.subscribe(T_DATA); client.subscribe(T_STATE); },
+        onFailure: () => { status.innerText="DISCONNECTED"; status.className="st-err"; }
+    });
+
+    function cmd(s) { if(client.isConnected()){ const m=new Paho.MQTT.Message(s); m.destinationName=T_CMD; client.send(m); }}
+</script>
+</body>
+</html>

@@ -11,9 +11,14 @@ ampy --port COM3 --delay 2 put main.py
 # to run
 ampy --port COM3 --delay 2 run main.py
 
+mpremote run main.py
+
+
 # 
 python -m serial.tools.miniterm COM3 115200
 
+
+nohup python3 -m http.server 9207 > server.log 2>&1 &
 
 # ssh user207@157.173.101.159 nebula002@()
 # ssh user210@157.173.101.159 samuel

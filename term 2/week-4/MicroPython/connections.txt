@@ -1,0 +1,28 @@
+DHT11:
+    VCC -> 3v3
+    DATA -> D2
+    GND -> GND
+
+LED:
+    agaSamuel -> CLK
+    akaDerick -> D0
+
+mpremote run main.py
+
+# if error
+
+mpremote connect COM3 run main.py
+
+D0	Pin(16)	Connected to the internal LED (Active Low).
+D1	Pin(5)	Best for general use (I2C SCL).
+D2	Pin(4)	Best for general use (I2C SDA).
+D3	Pin(0)	Connected to FLASH button; can cause boot issues if pulled low.
+D4	Pin(2)	Connected to internal LED on some models.
+D5	Pin(14)	SPI Clock.
+D6	Pin(12)	SPI MISO.
+D7	Pin(13)	SPI MOSI.
+D8	Pin(15)	Must be LOW at boot.
+
+
+wifi_name: RCA-A
+secret_key: RCA@2024  
