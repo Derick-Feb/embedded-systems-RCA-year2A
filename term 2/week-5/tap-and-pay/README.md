@@ -64,7 +64,7 @@ node server.js
 ```
 
 🔗 **Access the UI:** [http://localhost:9207](http://localhost:9207)
-🔗 **Access the UI:** [http://localhost:9207](http://157.173.101.159:9207:9207)
+🔗 **Access the UI:** [http://157.173.101.159:9207:9207](http://157.173.101.159:9207:9207)
 
 ---
 
